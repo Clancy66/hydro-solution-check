@@ -136,6 +136,10 @@ class SolutionCheckManageHandler extends SolutionCheckHandler {
 export async function apply(ctx: Context) {
     // 当用户提交题解时，如果题解已达到 15 个则拒绝新题解
     ctx.on('handler/before/ProblemSolution#post', async (that: any) => {
+        const userSolutions = await SolutionModel.getMulti(that.args.domainId, Number(that.args.pid), { owner: that.user._id }).toArray();
+        if (userSolutions.length > 0) {
+            throw new Error('该题目你已写过一篇题解');
+        }
         const solutions = await SolutionModel.getMulti(that.args.domainId, Number(that.args.pid)).toArray();
         if (solutions.length >= 15) {
             throw new Error('该题目的题解数量已达上限，不再接受新题解。');
