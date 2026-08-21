@@ -1,0 +1,212 @@
+{% import "components/nothing.html" as nothing with context %}
+{% import "components/user.html" as user with context %}
+{% import "components/paginator.html" as paginator with context %}
+{% extends "layout/basic.html" %}
+{% block content %}
+<style>
+/* ==========================================================================
+   ⚡ 修复训练列表表头遮挡问题 - 与排名页同样的方式
+   ========================================================================== */
+
+/* 表格外层包裹容器（如果模板中没有，可以先不加，用下面的修复） */
+
+/* 确保表格不会产生意外的定位上下文 */
+.summary-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    position: relative !important;
+    top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* 关键修复：防止表格行产生定位偏移 */
+.summary-table tbody tr {
+    position: relative !important;
+    top: 0 !important;
+}
+
+/* 强制表头行使用标准定位 */
+.summary-table thead tr {
+    position: static !important;
+    top: auto !important;
+}
+
+/* 父容器 overflow 改为 visible */
+.section,
+div.section,
+.section__body {
+    overflow: visible !important;
+}
+
+/* 清理训练页可能因为旧框架残留的 .icon 或伪元素点 */
+table.summary-table tbody tr td.col--summary-status i,
+table.summary-table tbody tr td.col--summary-status .icon {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+/* ⚡ 核心改动 1：重新洗牌列宽分配，把 60% 以上的空间疯狂让给标题列 */
+table.summary-table th.col--summary-title,
+table.summary-table td.col--summary-title {
+    width: auto !important; /* 不设固定宽度，任其无限向右拉伸 */
+    padding-left: 24px !important; /* 拉大左侧内边距，呼应比赛列表 */
+}
+
+/* ⚡ 核心改动 2：压缩右侧三列的固定宽度，逼迫它们整体集体向右侧靠拢 */
+table.summary-table th.col--summary-progress,
+table.summary-table td.col--summary-progress {
+    width: 160px !important; 
+    min-width: 160px !important;
+    text-align: center !important; /* 表头和数据单元格全部居中 */
+}
+
+table.summary-table th.col--summary-participants,
+table.summary-table td.col--summary-participants {
+    width: 160px !important; 
+    min-width: 160px !important;
+    text-align: center !important;
+}
+
+table.summary-table th.col--summary-status,
+table.summary-table td.col--summary-status {
+    width: 160px !important; 
+    min-width: 160px !important;
+    text-align: center !important;
+    padding-right: 24px !important; /* 拉大右侧边缘内边距，完美收尾 */
+}
+
+/* ⚡ 核心改动 3：强制让进度条 Flex 容器在单元格内部绝对水平居中 */
+table.summary-table td.col--summary-progress .hover-ac-container {
+    display: inline-flex !important; /* 改为 inline-flex 才能完美受 text-align: center 控制 */
+    justify-content: center !important;
+    align-items: center !important;
+    width: auto !important;
+}
+/* ⚡ 1. 强行把圆角控制权拿回来：通知浏览器大卡片四角必须严格按照系统圆角裁剪 */
+.section,
+div.section,
+.section__body {
+    
+    /* ⚡ 核心修复：开启强制裁剪，防止内部直角表格把卡片的圆角强行撑直 */
+    overflow: hidden !important; 
+}
+
+/* ⚡ 2. 彻底抹平表头和数据行的灰色，统一为纯白背景 */
+table.summary-table,
+table.summary-table thead,
+table.summary-table thead tr,
+table.summary-table thead th,
+table.summary-table tbody tr,
+table.summary-table tbody tr td {
+    box-shadow: none !important; /* 移除任何可能导致视觉直角边缘的内阴影 */
+}
+
+/* ⚡ 3. 完美保留表头下方的极细分割线，去除任何多余的直角边框 */
+table.summary-table thead th {
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+}
+
+/* ⚡ 4. 保持纯白底色上的优雅悬停高亮 */
+table.summary-table tbody tr:hover,
+table.summary-table tbody tr:hover td {
+    background: #f8fafc !important;
+    background-color: #f8fafc !important;
+}
+html[data-mantine-color-scheme="dark"] table.summary-table tbody tr:hover,
+html[data-mantine-color-scheme="dark"] table.summary-table tbody tr:hover td {
+    background: #656565 !important;
+    background-color: #656565 !important;
+}
+/* ==========================================================================
+   ⚡ 训练列表页表头防下沉重叠修正（完美同步开发环境）
+   ========================================================================== */
+
+/* 1. 彻底斩断线上合并压缩后可能产生的 sticky/absolute 定位 */
+table.summary-table thead,
+table.summary-table thead tr,
+table.summary-table thead th {
+    position: static !important; /* 强行回归正常网页排版，绝不悬空 */
+    transform: none !important;
+    top: auto !important;
+    z-index: auto !important;
+}
+
+/* 2. 确保数据行的第一行规规矩矩排在下方，绝不上浮 */
+table.summary-table tbody tr {
+    position: static !important;
+    transform: none !important;
+}
+
+/* 3. 细节微调：确保表头（th）和数据单元格（td）拥有坚实、统一的 padding 撑开空间 */
+table.summary-table thead th {
+    padding: 5px 5px !important; /* 适当加厚表头，形成天然的视线隔离带 */
+    border-bottom: 1px solid #e2e8f0 !important; /* 精致的灰线，把表头和数据彻底隔开 */
+}
+
+table.summary-table tbody tr td {
+    padding: 5px 5px !important; /* 确保第一行和后续所有行的间距完全一致 */
+}
+</style>
+<div class="row">
+  <div class="medium-12 columns">
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">题解审批</h1>
+      </div>
+      <div class="section__body no-padding">
+      {% if not ddocs.length %}
+        {{ nothing.render('no solution yet...') }}
+      {% else %}
+        <table class="data-table summary-table" style="width: 100%; border-collapse: collapse; table-layout: fixed; background: transparent;">
+        <thead>
+          <tr style="background-color: rgba(128, 128, 128, 0.04); border-bottom: 1px solid #e2e8f0;">
+            <th class="col--summary-title" style="text-align: left; padding: 12px 16px;">{{ _('题解 ID') }}</th>
+            <th class="col--summary-progress" style="text-align: center; padding: 12px 16px;">{{ _('Author') }}</th>
+            <th class="col--summary-participants" style="text-align: center; padding: 12px 16px;">{{ _('Date') }}</th>
+            <th class="col--summary-status" style="text-align: center; padding: 12px 16px;">{{ _('Status') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {%- for ddoc in ddocs -%}          
+          <tr>
+            <!-- 1. 题目名称 -->
+            <td class="col--summary-title">
+              <a class="summary-link" href="{{ url('problem_solution', pid=ddoc.pid|default(ddoc.docId)) }}" data-emoji-enabled style="font-weight: bold; color: #3b82f6; text-decoration: none;">
+                {{ ddoc['sid'] }}
+              </a>
+            </td>
+            
+            <!-- 2. 作者 -->
+            <td class="col--summary-progress">
+              <div class="hover-ac-container" style="display: flex; align-items: center; gap: 8px;">
+                {{ ddoc.owner }}
+              </div>
+            </td>
+            
+            <!-- 3. 创建日期 -->
+            <td class="col--summary-participants" style="text-align: center; color: #475569; font-weight: 600;">
+              {{ datetimeSpan(ddoc._id, false, 'YYYY-MM-DD')|safe }}
+            </td>
+            
+            <!-- 4. 查看次数 -->
+            <td class="col--summary-status" style="text-align: center;">
+              {% if ddoc.status == 0 %}<div style="color: blue;">待审批</div>
+              {% elif ddoc.status == 1 %}<div style="color: green;">已通过</div>
+              {% elif ddoc.status == 2 %}<div style="color: red;">已拒绝</div>
+              {% endif %}
+            </td>
+          </tr>
+        {%- endfor -%}
+        </tbody>
+      </table>
+        {% if page and dpcount %}{{ paginator.render(page, dpcount) }}{% endif %}
+      {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

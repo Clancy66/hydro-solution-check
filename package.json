@@ -1,0 +1,8 @@
+{
+  "name": "hydro-solution-check",
+  "version": "1.0.0",
+  "description": "Hydro 题解审批流",
+  "main": "index.ts",
+  "author": "Clancy",
+  "license": "MIT"
+}
