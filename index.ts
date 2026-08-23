@@ -165,7 +165,7 @@ export async function apply(ctx: Context) {
     // 当用户提交题解时，如果题解已达到 15 个则拒绝新题解
     ctx.on('handler/before/ProblemSolution#post', async (that: any) => {
         const userSolutions = await SolutionModel.getMulti(that.args.domainId, Number(that.args.pid), { owner: that.user._id }).toArray();
-        if (userSolutions.length > 0) {
+        if (that.args.operation === 'submit' && userSolutions.length > 0) {
             throw new Error('该题目你已写过一篇题解');
         }
         const solutions = await SolutionModel.getMulti(that.args.domainId, Number(that.args.pid)).toArray();
