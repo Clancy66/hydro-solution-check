@@ -1,4 +1,4 @@
-import { _, db, PRIV, Handler, Context, Types, param, ForbiddenError, ObjectId, moment, SolutionModel } from 'hydrooj';
+import { _, db, PRIV, Handler, Context, Types, param, ForbiddenError, ObjectId, moment, SolutionModel, ProblemModel } from 'hydrooj';
 
 // 1. 定义审批状态枚举
 enum CheckStatus {
@@ -109,7 +109,7 @@ class SolutionCheckManageHandler extends SolutionCheckHandler {
     }
 
     // 提交审批结果（仅限管理员）
-    async postSubmitAudit() {
+    async postSubmitAudit({domainId}) {
         if (!this.user.hasPriv(PRIV.PRIV_SET_PERM)) {
             throw new ForbiddenError('你没有审批题解的权限');
         }
@@ -129,10 +129,11 @@ class SolutionCheckManageHandler extends SolutionCheckHandler {
                     uid: uid,
                     goodsId: sid
                 });
+                const pdoc = await ProblemModel.get(domainId, pid);
 
                 if (bdoc === null || bdoc === undefined) {
                     // 这里必须进账单，不然会出现重复奖励的情况。
-                    const currentLog = "[题解奖励] " + pid;
+                    const currentLog = "[题解奖励] " + pdoc.pid + " " + pdoc.title;
                     await db.collection('bills').insertOne({
                         createAt: new Date(),
                         rootId: rootId,
@@ -145,7 +146,7 @@ class SolutionCheckManageHandler extends SolutionCheckHandler {
                     await db.collection('coins').updateOne({uid}, 
                         { $inc: { total: 10, solution: 10 }},
                         { upsert: true }
-                    )    
+                    )
                 }
             }
 
@@ -190,6 +191,13 @@ export async function apply(ctx: Context) {
         if (that.args.operation === 'delete_solution' && that.response !== null) {
             if (!that.user.hasPriv(PRIV.PRIV_SET_PERM)) {
                 await SolutionCheckModel.delete(new ObjectId(that.args.psid));
+                // 删除相应的账单，并扣除相应的金币
+                await db.collection('bills').findOneAndDelete({goodsId: that.args.psid});
+                await db.collection('coins').updateOne(
+                    { uid: that.user._id }, 
+                    { $inc: { total: -10, solution: -10 }},
+                    { upsert: true }
+                )
             }
         }
     });
