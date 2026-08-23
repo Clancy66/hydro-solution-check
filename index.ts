@@ -115,13 +115,40 @@ class SolutionCheckManageHandler extends SolutionCheckHandler {
         }
 
         const body = this.args || this.request?.body || (this as any).body || {};
-        const { sid, action, reason } = body;
+        const { sid, pid, rootId, uid, action, reason } = body;
 
         try {
             // 将字符串 ID 转换为 MongoDB 的 ObjectId 对象
             const targetSid = new ObjectId(sid);
             const status = action === 'approve' ? CheckStatus.APPROVED : CheckStatus.REJECTED;
             
+            // 审核通过的题解奖励 10 金币
+            if (status === CheckStatus.APPROVED) {
+                // 防重复
+                const bdoc = await db.collection('bills').findOne({
+                    uid: uid,
+                    goodsId: sid
+                });
+
+                if (bdoc === null || bdoc === undefined) {
+                    // 这里必须进账单，不然会出现重复奖励的情况。
+                    const currentLog = "[题解奖励] " + pid;
+                    await db.collection('bills').insertOne({
+                        createAt: new Date(),
+                        rootId: rootId,
+                        uid: uid,
+                        goodsId: sid,
+                        coins: 10,
+                        content: currentLog,
+                        check: 2
+                    });
+                    await db.collection('coins').updateOne({uid}, 
+                        { $inc: { total: 10, solution: 10 }},
+                        { upsert: true }
+                    )    
+                }
+            }
+
             // 执行审批操作
             await SolutionCheckModel.update(targetSid, status, reason || '');
             

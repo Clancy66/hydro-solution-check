@@ -105,10 +105,10 @@
         <div class="dczcomments__operations nojs--hide">
         {% if handler.user.hasPriv(PRIV.PRIV_SET_PERM) %}
           {% if doc.checkStatus == 0 %}
-            <a href="javascript:;" data-tooltip="通过审批" onclick="submitAudit('{{ doc._id }}', 'approve')">
+            <a href="javascript:;" data-tooltip="通过审批" onclick="submitAudit('{{ doc._id }}', '{{ doc.parentId }}', {{ handler.user._id }}, {{ doc.owner }}, 'approve')">
               <span class="icon icon-check" style="color:#21ba45;"></span>
             </a>
-            <a href="javascript:;" data-tooltip="拒绝发布" onclick="submitAudit('{{ doc._id }}', 'reject')">
+            <a href="javascript:;" data-tooltip="拒绝发布" onclick="submitAudit('{{ doc._id }}', '{{ doc.parentId }}', {{ handler.user._id }}, {{ doc.owner }}, 'reject')">
               <span class="icon icon-close" style="color:#db2828;"></span>
             </a>
           {% endif %}
@@ -193,7 +193,7 @@
 {%- endfor -%}
 </ul>
 <script>
-function submitAudit(sid, action) {
+function submitAudit(sid, pid, rootId, uid, action) {
   let reason = '';
   
   // 如果是拒绝操作，直接弹窗让管理员输入原因
@@ -213,6 +213,9 @@ function submitAudit(sid, action) {
     body: JSON.stringify({
       operation: 'submitAudit',
       sid: sid,
+      pid: pid,
+      rootId: rootId,
+      uid: uid,
       action: action,
       reason: reason
     })
