@@ -92,7 +92,40 @@ class SolutionCheckManageHandler extends SolutionCheckHandler {
     async get(page = 1) {
         let ddocs;
         if (this.user.hasPriv(PRIV.PRIV_SET_PERM)) {
-            ddocs = await SolutionCheckModel.getList(CheckStatus.PENDING, page);
+            ddocs = await SolutionCheckModel.coll.aggregate([
+            // 1. 过滤出待审核（PENDING）的数据
+            { 
+                $match: { status: CheckStatus.PENDING } 
+            },
+            // 2. 关联 user 表（联表查询）
+            {
+                $lookup: {
+                from: "user",             // 你的 user 集合在数据库中的真实名称（通常是复数）
+                localField: "owner",       // SolutionCheck 集合中关联用户的字段
+                foreignField: "_id",       // user 集合中的主键字段
+                as: "userInfo"             // 查询结果存放的临时数组名
+                }
+            },
+            // 3. 将关联出的用户数组展平为对象
+            {
+                $unwind: {
+                path: "$userInfo",
+                preserveNullAndEmptyArrays: true // 如果用户被删了，保留原数据防止记录丢失
+                }
+            },
+            // 4. 重新整理输出字段，直接把 uname 放到外层
+            {
+                $project: {
+                _id: 1,
+                owner: 1,
+                status: 1,
+                sid: 1,
+                pid: 1,
+                // 保留你需要显示的其他字段 ...
+                uname: "$userInfo.uname"   // 直接提取出 uname 字段
+                }
+            }
+            ]).toArray();
         } else {
             // 普通用户只能查自己的
             ddocs = await SolutionCheckModel.coll.find({ owner: this.user._id }).toArray();
@@ -164,7 +197,7 @@ class SolutionCheckManageHandler extends SolutionCheckHandler {
 export async function apply(ctx: Context) {
     // 当用户提交题解时，如果题解已达到 15 个则拒绝新题解
     ctx.on('handler/before/ProblemSolution#post', async (that: any) => {
-        const userSolutions = await SolutionModel.getMulti(that.args.domainId, Number(that.args.pid), { owner: that.user._id }).toArray();
+        const userSolutions = await SolutionModel.getMulti(that.args.domainId, that.response.body.pdoc.docId, { owner: that.user._id }).toArray();
         if (that.args.operation === 'submit' && userSolutions.length > 0) {
             throw new Error('该题目你已写过一篇题解');
         }

@@ -175,7 +175,7 @@ table.summary-table tbody tr td {
           <tr>
             <!-- 1. 题目名称 -->
             <td class="col--summary-title">
-              <a class="summary-link" href="{{ url('problem_solution_detail', pid=ddoc.pid|default(ddoc.docId), sid=ddoc.sid) }}" data-emoji-enabled style="font-weight: bold; color: #3b82f6; text-decoration: none;">
+              <a class="summary-link" href="{{ url('problem_solution_detail', pid=ddoc.pid, sid=ddoc.sid) }}" data-emoji-enabled style="font-weight: bold; color: #3b82f6; text-decoration: none;">
                 {{ ddoc['sid'] }}
               </a>
             </td>
@@ -183,7 +183,7 @@ table.summary-table tbody tr td {
             <!-- 2. 作者 -->
             <td class="col--summary-progress">
               <div class="hover-ac-container" style="display: flex; align-items: center; gap: 8px;">
-                {{ ddoc.owner }}
+                {{ ddoc.uname }}
               </div>
             </td>
             
