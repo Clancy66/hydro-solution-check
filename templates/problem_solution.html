@@ -54,8 +54,13 @@
   </div>
   <div class="medium-3 columns">
     {% set owner_udoc = udict[pdoc.owner] %}
-    {% include "partials/problem_sidebar.html" %}
-    {% include 'components/md_hint.html' %}
+    <div class="section-problem-info">
+      {% include "partials/problem_sidebar.html" %}
+    </div>
+    <!-- 语法帮助（默认隐藏） -->
+    <div class="section-syntax-help" style="display: none;">
+      {% include 'components/md_hint.html' %}
+    </div>
   </div>
 </div>
 {% endblock %}

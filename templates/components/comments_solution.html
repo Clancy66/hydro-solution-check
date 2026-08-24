@@ -48,7 +48,7 @@
       <div class="hasjs--hide">
         <form method="post" class="dczcomments__box" name="dczcomments__box__form" data-hotkey="ctrl+enter:submit,esc:vjCommentBoxCancel">
           <div>
-            <textarea name="content" class="textbox" data-markdown required>{{ default_content }}</textarea>
+            <textarea name="content" class="textbox" data-markdown data-toggle-help required>{{ default_content }}</textarea>
           </div>
           <div>
             <input type="submit" class="rounded primary button dczcomments__box__submit" value="{{ _(comment_post_text) }} (Ctrl+Enter)" data-value-reply="{{ _(reply_post_text) }} (Ctrl+Enter)" data-value-comment="{{ _(comment_post_text) }} (Ctrl+Enter)" data-value-comment-update="{{ _(comment_edit_text) }} (Ctrl+Enter)" data-value-reply-update="{{ _(reply_edit_text) }} (Ctrl+Enter)">
@@ -192,6 +192,64 @@
 </li>
 {%- endfor -%}
 </ul>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. 获取右侧对应的容器元素（请替换为你项目中右侧区域真正的 class 或 id）
+    const problemInfoArea = document.querySelector('.section-problem-info'); // 题目信息容器
+    const syntaxHelpArea = document.querySelector('.section-syntax-help');   // 语法帮助容器
+
+    if (!problemInfoArea || !syntaxHelpArea) return;
+
+    let timer = null;
+
+    // 检查元素是否在编辑区或语法帮助区内部
+    function isEditorOrHelp(el) {
+        if (!el) return false;
+        return !!el.closest(
+            '.dczcomments__item, .dczcomments__box, .commentbox-container, textarea, .syntax-help-section'
+        );
+    }
+
+    // 切换显示的核心逻辑
+    function updateVisibility() {
+        // 获取当前真正拥有焦点的 DOM 元素
+        const activeEl = document.activeElement;
+
+        if (isEditorOrHelp(activeEl)) {
+            problemInfoArea.style.display = 'none';
+            syntaxHelpArea.style.display = 'block';
+        } else {
+            syntaxHelpArea.style.display = 'none';
+            problemInfoArea.style.display = 'block';
+        }
+    }
+
+    // 1. 监听全局焦点变化 (涵盖 键盘Tab、鼠标点击 等所有焦点转移)
+    document.addEventListener('focusin', function() {
+        if (timer) clearTimeout(timer);
+        // 极短延迟，等待 DOM 动态渲染/替换完成
+        timer = setTimeout(updateVisibility, 50);
+    });
+
+    document.addEventListener('focusout', function() {
+        if (timer) clearTimeout(timer);
+        // 延迟 150ms 校验，防止 DOM 替换瞬间的空档误判
+        timer = setTimeout(updateVisibility, 150);
+    });
+
+    // 2. 监听点击事件，处理点击了不可聚焦的区域（如普通 div/空白处）
+    document.addEventListener('click', function(e) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function() {
+            // 如果点击的不是编辑区和帮助区，且焦点也不在里面，强制切回
+            if (!isEditorOrHelp(e.target) && !isEditorOrHelp(document.activeElement)) {
+                syntaxHelpArea.style.display = 'none';
+                problemInfoArea.style.display = 'block';
+            }
+        }, 50);
+    });
+});
+</script>
 <script>
 function submitAudit(sid, pid, rootId, uid, action) {
   let reason = '';
