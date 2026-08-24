@@ -223,14 +223,18 @@ export async function apply(ctx: Context) {
         // 删除题解时同步删除相关审批流
         if (that.args.operation === 'delete_solution' && that.response !== null) {
             if (!that.user.hasPriv(PRIV.PRIV_SET_PERM)) {
+                const solution = await SolutionCheckModel.coll.findOne({sid: new ObjectId(that.args.psid)});
+                // 审核通过的题解
+                if (solution.status === 1) {
+                    // 删除相应的账单，并扣除相应的金币
+                    await db.collection('bills').findOneAndDelete({goodsId: that.args.psid});
+                    await db.collection('coins').updateOne(
+                        { uid: that.user._id }, 
+                        { $inc: { total: -10, solution: -10 }},
+                        { upsert: true }
+                    )
+                }
                 await SolutionCheckModel.delete(new ObjectId(that.args.psid));
-                // 删除相应的账单，并扣除相应的金币
-                await db.collection('bills').findOneAndDelete({goodsId: that.args.psid});
-                await db.collection('coins').updateOne(
-                    { uid: that.user._id }, 
-                    { $inc: { total: -10, solution: -10 }},
-                    { upsert: true }
-                )
             }
         }
     });
